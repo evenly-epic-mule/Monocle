@@ -32,7 +32,7 @@ _optional = {
     'TIME_REQUIRED': 300,
     'NOTIFY_RANKING': 90,
     'ALWAYS_NOTIFY_IDS': set(),
-    'NOTIFICATION_CACHE': 100
+    'NOTIFICATION_CACHE': 1000
 }
 # set defaults for unset config options
 for setting_name, default in _optional.items():
@@ -625,7 +625,7 @@ class Notifier:
             # skip duplicate
             return False
 
-        if pokemon['valid']:
+        if pokemon['valid'] or not spawn_id:
             time_till_hidden = pokemon['time_till_hidden_ms'] / 1000
         else:
             time_till_hidden = None
@@ -700,6 +700,8 @@ class Notifier:
         if notified or whpushed:
             self.last_notification = monotonic()
             self.recent_notifications.append(encounter_id)
+            if spawn_id:
+                self.recent_notifications.append('nearby' + str(encounter_id))
         return notified or whpushed
 
     def webhook(self, pokemon, time_till_hidden):

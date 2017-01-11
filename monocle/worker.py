@@ -751,6 +751,11 @@ class Worker:
         if config.ITEM_LIMITS and self.bag_full():
             await self.clean_bag()
 
+        cellforts = {}
+        for map_cell in map_objects['map_cells']:
+            for f in map_cell.get('forts', []):
+                cellforts[f['id']] = f
+
         for map_cell in map_objects['map_cells']:
             request_time_ms = map_cell['current_timestamp_ms']
             for pokemon in map_cell.get('wild_pokemons', []):
@@ -793,6 +798,23 @@ class Worker:
                             self.logger.exception('Exception during encounter.')
 
                 shared.DB.add(normalized)
+
+            for pokemon in map_cell.get('nearby_pokemons', []):
+                if 'fort_id' in pokemon and pokemon['fort_id'] in cellforts:
+                    normalized = {
+                        'type': 'pokemon',
+                        'encounter_id': "nearby" + str(pokemon['encounter_id']),
+                        'pokemon_id': pokemon['pokemon_id'],
+                        'expire_timestamp': round(request_time_ms/1000) + 600,
+                        'lat': cellforts[pokemon['fort_id']]['latitude'],
+                        'lon': cellforts[pokemon['fort_id']]['longitude'],
+                        'spawn_id': '',
+                        'time_till_hidden_ms': round(request_time_ms/1000) + 600,
+                        'seen': round(request_time_ms/1000),
+                        'valid': False
+                    }
+                    if config.NOTIFY and self.notifier.eligible(normalized):
+                        sent = self.notify(normalized, time_of_day)
 
             for fort in map_cell.get('forts', []):
                 if not fort.get('enabled'):

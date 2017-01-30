@@ -19,7 +19,7 @@ from argparse import ArgumentParser
 from signal import signal, SIGINT, SIG_IGN
 from logging import getLogger, basicConfig, WARNING, INFO
 from pogo_async.session import Session
-from os.path import exists, join
+from os.path import exists, join, isdir
 from threading import Thread
 from sys import platform
 from sqlalchemy.exc import DBAPIError
@@ -185,6 +185,12 @@ def parse_args():
         action='store_false'
     )
     parser.add_argument(
+        '--status-file',
+        dest='status_file',
+        help='Print status to file instead of displaying it (includes --no-status-bar, only on Linux!)',
+        action='store_true'
+    )
+    parser.add_argument(
         '--log-level',
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
         default=WARNING
@@ -225,6 +231,12 @@ def exception_handler(loop, context):
 
 def main():
     args = parse_args()
+    if args.status_file:
+        if isdir('/tmp'):
+            args.status_bar = False
+        else:
+            args.status_file = False
+
     log = shared.get_logger()
     if args.status_bar:
         configure_logger(filename=join(config.DIRECTORY, 'scan.log'))
@@ -252,7 +264,7 @@ def main():
     loop = asyncio.get_event_loop()
     loop.set_exception_handler(exception_handler)
 
-    overseer = Overseer(status_bar=args.status_bar, manager=manager)
+    overseer = Overseer(status_bar=args.status_bar, status_file=args.status_file, manager=manager)
     overseer.start()
     overseer_thread = Thread(target=overseer.check, name='overseer', daemon=True)
     overseer_thread.start()

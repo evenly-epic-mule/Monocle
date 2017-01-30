@@ -5,7 +5,7 @@ import asyncio
 from datetime import datetime
 from statistics import median
 from threading import active_count, Semaphore
-from os import system
+from os import system, getpid
 from sys import platform
 from random import uniform
 from collections import deque
@@ -52,13 +52,14 @@ class Overseer:
     accounts = Worker.accounts
     loop = asyncio.get_event_loop()
 
-    def __init__(self, status_bar, manager):
+    def __init__(self, status_bar, status_file, manager):
         self.log = shared.get_logger('overseer')
         self.workers = []
         self.manager = manager
         self.count = config.GRID[0] * config.GRID[1]
         self.start_date = datetime.now()
         self.status_bar = status_bar
+        self.status_file = status_file
         self.things_count = []
         self.paused = False
         self.killed = False
@@ -125,12 +126,18 @@ class Overseer:
                     self.things_count = self.things_count[-9:]
                     self.things_count.append(str(shared.DB.count))
                     last_things_found_updated = now
-                if self.status_bar:
-                    if platform == 'win32':
-                        system('cls')
-                    else:
-                        system('clear')
-                    print(self.get_status_message())
+                if self.status_bar or self.status_file:
+                    status = self.get_status_message()
+                    if self.status_file:
+                        statf = open('/tmp/monocle-'+str(getpid()), 'w')
+                        statf.write(status)
+                        statf.close()
+                    elif self.status_bar:
+                        if platform == 'win32':
+                            system('cls')
+                        else:
+                            system('clear')
+                        print(status)
 
                 if self.paused:
                     time.sleep(max(15, config.REFRESH_RATE))

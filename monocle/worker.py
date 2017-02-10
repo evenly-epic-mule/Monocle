@@ -927,18 +927,29 @@ class Worker:
 
         responses = await self.call(request, action=2.25)
 
-        try:
-            pdata = responses['ENCOUNTER']['wild_pokemon']['pokemon_data']
-            pokemon['move_1'] = pdata['move_1']
-            pokemon['move_2'] = pdata['move_2']
-            pokemon['individual_attack'] = pdata.get('individual_attack', 0)
-            pokemon['individual_defense'] = pdata.get('individual_defense', 0)
-            pokemon['individual_stamina'] = pdata.get('individual_stamina', 0)
-            pokemon['height'] = pdata['height_m']
-            pokemon['weight'] = pdata['weight_kg']
-            pokemon['gender'] = pdata['pokemon_display']['gender']
-        except KeyError:
-            self.log.error('Missing Pokemon data in encounter response.')
+        result = responses.get('ENCOUNTER', {}).get('status', 0)
+        if result == 1:
+            self.log.debug('Encountered Pokemon #{}.', pokemon['pokemon_id'])
+            try:
+                pdata = responses['ENCOUNTER']['wild_pokemon']['pokemon_data']
+                pokemon['move_1'] = pdata['move_1']
+                pokemon['move_2'] = pdata['move_2']
+                pokemon['individual_attack'] = pdata.get('individual_attack', 0)
+                pokemon['individual_defense'] = pdata.get('individual_defense', 0)
+                pokemon['individual_stamina'] = pdata.get('individual_stamina', 0)
+                pokemon['height'] = pdata['height_m']
+                pokemon['weight'] = pdata['weight_kg']
+                pokemon['gender'] = pdata['pokemon_display']['gender']
+            except KeyError:
+                self.log.error('Missing Pokemon data in encounter response.')
+        elif result == 4:
+            self.log.info('Pokemon that should be encountered has fled')
+        elif result == 7:
+            self.log.warning('Could not encounter #{} because the bag of {} is full.',
+                pokemon['pokemon_id'], self.username)
+            await self.swap_account(reason='full pkmn bag')
+        else:
+            self.log.error('Failed encountering #{}: {}', pokemon['pokemon_id'], result)
         self.error_code = '!'
 
     def bag_full(self):

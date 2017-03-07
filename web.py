@@ -203,6 +203,11 @@ def report_heatmap():
         return json.dumps(db.get_all_spawn_coords(session, pokemon_id=pokemon_id))
 
 
+@app.route('/basescan_points')
+def basescan_points():
+    return jsonify(get_basescan_points())
+
+
 def main():
     args = get_args()
     app.run(debug=args.debug, threaded=True, host=args.host, port=args.port)

@@ -13,6 +13,7 @@ from aiopogo.hash_server import HashServer
 from sqlalchemy.exc import OperationalError
 
 import time
+import math
 
 try:
     import _thread
@@ -20,7 +21,7 @@ except ImportError:
     import _dummy_thread as _thread
 
 from .db import SIGHTING_CACHE, MYSTERY_CACHE
-from .utils import get_current_hour, dump_pickle, get_start_coords, get_bootstrap_points, randomize_point
+from .utils import get_current_hour, dump_pickle, get_start_coords, get_bootstrap_points, randomize_point, get_hex_points
 from .shared import get_logger, LOOP, run_threaded, ACCOUNTS
 from .db_proc import DB_PROC
 from .spawns import SPAWNS
@@ -66,6 +67,7 @@ class Overseer:
         self.skipped = 0
         self.visits = 0
         self.mysteries = deque()
+        self.basescan_points = get_hex_points()
         self.coroutine_semaphore = asyncio.Semaphore(conf.COROUTINES_LIMIT, loop=LOOP)
         self.redundant = 0
         self.running = True
@@ -242,10 +244,10 @@ class Overseer:
 
         output = [
             'Monocle running for {}'.format(running_for),
-            'Known spawns: {}, unknown: {}, more: {}'.format(
+            'Known spawns: {}, unknown: {}, base: {}'.format(
                 len(SPAWNS),
                 SPAWNS.mysteries_count,
-                SPAWNS.cells_count),
+                sum(len(x) for x in self.basescan_points.values())),
             '{} workers, {} threads, {} coroutines'.format(
                 self.count,
                 active_count(),
@@ -407,6 +409,7 @@ class Overseer:
                     initial = False
             else:
                 await run_threaded(dump_pickle, 'accounts', ACCOUNTS)
+                await run_threaded(dump_pickle, 'basescan', self.basescan_points)
 
             for spawn_id, spawn in SPAWNS.items():
                 if initial:
@@ -445,6 +448,10 @@ class Overseer:
                             time_diff = time.time() - spawn_time
                             break
                     time_diff = time.time() - spawn_time
+
+                while time_diff < 0 and self.coroutines_count < conf.COROUTINES_LIMIT/2:
+                    if not self.basescan_point():
+                        break
 
                 if time_diff < -1:
                     await asyncio.sleep(time_diff * -1, loop=LOOP)
@@ -500,6 +507,43 @@ class Overseer:
 
         tasks = (bootstrap_try(x) for x in get_bootstrap_points())
         await asyncio.gather(*tasks, loop=LOOP)
+
+    def basescan_point(self):
+        async def basescan_try(point, queue, next_queue, until):
+            try:
+                worker = await self.best_worker(point)
+                if worker and await worker.bootstrap_visit(point):
+                    if until < time.time():
+                        queue.append(point)
+                        if point not in next_queue:
+                            return
+                        next_queue.remove(point)
+                else:
+                    queue.append(point)
+            finally:
+                try:
+                    worker.busy.release()
+                except (NameError, AttributeError, RuntimeError):
+                    pass
+                self.coroutine_semaphore.release()
+
+        now = datetime.now()
+        section = math.floor(now.minute/15)
+        until = time.time() + (14 - now.minute % 15) * 60 + (60 - now.second)
+
+        if not self.basescan_points.get(section):
+            return False
+
+        point = self.basescan_points[section].pop()
+        self.coroutine_semaphore.acquire()
+        next_queue = self.basescan_points.get((section+1)%4, [])
+        LOOP.create_task(
+            basescan_try(point, self.basescan_points[section], next_queue, until))
+
+        if len(self.basescan_points[section]) == 0:
+            del self.basescan_points[section]
+            return False
+        return True
 
     async def try_point(self, point, spawn_time=None):
         try:

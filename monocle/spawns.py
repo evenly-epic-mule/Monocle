@@ -14,9 +14,7 @@ class Spawns:
         self.spawns = OrderedDict()
         self.despawn_times = {}
         self.mysteries = set()
-        self.cell_points = set()
         self.altitudes = {}
-        self.known_points = set()
         self.log = get_logger('spawns')
 
     def __len__(self):
@@ -28,13 +26,13 @@ class Spawns:
     def update(self, loadpickle=False):
         if loadpickle:
             try:
-                self.spawns, self.despawn_times, self.mysteries, self.altitudes, self.known_points = load_pickle('spawns')
+                self.spawns, self.despawn_times, self.mysteries, self.altitudes = load_pickle('spawns')
                 if self.mysteries or self.despawn_times:
                     return
             except Exception:
                 pass
         with db.session_scope() as session:
-            self.spawns, self.despawn_times, self.mysteries, a, self.known_points = db.get_spawns(session)
+            self.spawns, self.despawn_times, self.mysteries, a = db.get_spawns(session)
         self.altitudes.update(a)
         if not self.altitudes:
             self.altitudes = get_point_altitudes()
@@ -63,7 +61,7 @@ class Spawns:
         return self.spawns.items()
 
     def get_mysteries(self):
-        mysteries = deque(self.mysteries | self.cell_points)
+        mysteries = deque(self.mysteries)
         shuffle(mysteries)
         return mysteries
 
@@ -79,29 +77,17 @@ class Spawns:
     def add_despawn(self, spawn_id, despawn_time):
         self.despawn_times[spawn_id] = despawn_time
 
-    def add_known(self, point):
-        self.known_points.add(point)
-        self.remove_mystery(point)
-
     def add_mystery(self, point):
         self.mysteries.add(point)
-        self.cell_points.discard(point)
-
-    def add_cell_point(self, point):
-        self.cell_points.add(point)
 
     def remove_mystery(self, point):
         self.mysteries.discard(point)
-        self.cell_points.discard(point)
 
     def get_despawn_seconds(self, spawn_id):
         return self.despawn_times.get(spawn_id)
 
     def db_has(self, point):
-        return point in chain(self.known_points, self.mysteries)
-
-    def have_point(self, point):
-        return point in chain(self.cell_points, self.known_points, self.mysteries)
+        return point in self.mysteries
 
     def get_despawn_time(self, spawn_id, seen=None):
         now = seen or time()
@@ -121,18 +107,14 @@ class Spawns:
 
     @property
     def pickle_objects(self):
-        return self.spawns, self.despawn_times, self.mysteries, self.altitudes, self.known_points
+        return self.spawns, self.despawn_times, self.mysteries, self.altitudes
 
     @property
     def total_length(self):
-        return len(self.despawn_times) + self.mysteries_count + self.cells_count
+        return len(self.despawn_times) + self.mysteries_count
 
     @property
     def mysteries_count(self):
         return len(self.mysteries)
-
-    @property
-    def cells_count(self):
-        return len(self.cell_points)
 
 SPAWNS = Spawns()

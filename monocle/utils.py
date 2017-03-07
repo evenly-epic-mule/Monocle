@@ -199,6 +199,22 @@ def get_bootstrap_points():
     return coords
 
 
+def get_hex_points():
+    scanpoints = load_pickle('basescan')
+    if scanpoints:
+        return scanpoints
+
+    coords = get_bootstrap_points()
+
+    scanpoints = {}
+    for i in range(4):
+        scanpoints[i] = coords.copy()
+        random.shuffle(scanpoints[i])
+    dump_pickle('basescan', scanpoints)
+
+    return scanpoints
+
+
 def get_device_info(account):
     device_info = {'brand': 'Apple',
                    'device': 'iPhone',

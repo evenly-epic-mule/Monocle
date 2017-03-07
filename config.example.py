@@ -28,7 +28,7 @@ MAP_END = (40.7143, -111.8046)
 STAY_WITHIN_MAP = True
 
 # ensure that you visit within this many meters of every part of your map during bootstrap
-#BOOTSTRAP_RADIUS = 240
+#BOOTSTRAP_RADIUS = 70
 
 GIVE_UP_KNOWN = 75   # try to find a worker for a known spawn for this many seconds before giving up
 GIVE_UP_UNKNOWN = 60 # try to find a worker for an unknown point for this many seconds before giving up
@@ -132,10 +132,6 @@ MAX_RETRIES = 3
 
 # number of seconds before timing out on a login request
 LOGIN_TIMEOUT = 2.5
-
-# add spawn points reported in cell_ids to the unknown spawns list
-# disable if your workers already have more than enough points to visit
-MORE_POINTS = True
 
 # Set to True to kill the scanner when a newer version is forced
 #FORCED_KILL = False

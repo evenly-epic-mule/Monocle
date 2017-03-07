@@ -187,6 +187,26 @@ else:
         },)
 
 
+def get_basescan_points():
+    hex_points = {}
+    for points in utils.get_hex_points().values():
+        for point in points:
+            i = str(point[0]) + ',' + str(point[1])
+            if i not in hex_points:
+                hex_points[i] = 1
+            else:
+                hex_points[i] += 1
+
+    markers = []
+    for point, count in hex_points.items():
+        markers.append({
+            'type': 'basepoint',
+            'point': point.split(','),
+            'count': count
+        })
+
+    return markers
+
 def get_pokestop_markers():
     markers = []
     with db.session_scope() as session:

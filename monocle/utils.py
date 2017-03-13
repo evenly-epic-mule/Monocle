@@ -44,7 +44,9 @@ IPHONES = {'iPhone5,1': 'N41AP',
            'iPhone9,3': 'D101AP',
            'iPhone9,4': 'D111AP'}
 
-if conf.BOUNDARIES:
+if conf.MAP_CENTER:
+    MAP_CENTER = conf.MAP_CENTER
+elif conf.BOUNDARIES:
     MAP_CENTER = conf.BOUNDARIES.centroid.coords[0]
     LAT_MEAN, LON_MEAN = MAP_CENTER
 else:

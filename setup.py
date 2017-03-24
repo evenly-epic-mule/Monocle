@@ -26,11 +26,11 @@ setup(
         'sqlalchemy>=1.1.0',
         'aiopogo>=1.5.2',
         'polyline>=1.3.1',
-        'aiohttp==1.3.*',
+        'aiohttp>=2.0.4,<2.1',
         'pogeo>=0.2'
     ],
     extras_require={
-        'twitter': ['peony-twitter>=0.9'],
+        'twitter': ['peony-twitter>=0.9.3'],
         'pushbullet': ['asyncpushbullet>=0.12'],
         'landmarks': ['shapely>=1.3.0'],
         'boundaries': ['shapely>=1.3.0'],

@@ -6,7 +6,7 @@ from itertools import cycle
 from sys import exit
 from concurrent.futures import CancelledError
 
-from aiopogo import PGoApi, exceptions as ex
+from aiopogo import PGoApi, json_loads, exceptions as ex
 from aiopogo.auth_ptc import AuthPtc
 from aiopogo.hash_server import HashServer
 from pogeo import get_distance
@@ -131,22 +131,22 @@ class Worker:
         self.api = PGoApi(device_info=device_info)
         self.api.set_position(*self.location, self.altitude)
         if self.proxies:
-            self.api.set_proxy(next(self.proxies))
+            self.api.proxy = next(self.proxies)
         try:
             if self.account['provider'] == 'ptc' and 'auth' in self.account:
-                self.api._auth_provider = AuthPtc(username=self.username, password=self.account['password'], timeout=conf.LOGIN_TIMEOUT)
-                self.api._auth_provider._access_token = self.account['auth']
-                self.api._auth_provider.set_refresh_token(self.account['refresh'])
-                self.api._auth_provider._access_token_expiry = self.account['expiry']
-                if self.api._auth_provider.check_access_token():
-                    self.api._auth_provider._login = True
+                self.api.auth_provider = AuthPtc(username=self.username, password=self.account['password'], timeout=conf.LOGIN_TIMEOUT)
+                self.api.auth_provider._access_token = self.account['auth']
+                self.api.auth_provider._refresh_token = self.account['refresh']
+                self.api.auth_provider._access_token_expiry = self.account['expiry']
+                if self.api.auth_provider.check_access_token():
+                    self.api.auth_provider._login = True
         except KeyError:
             pass
 
     def swap_proxy(self):
         proxy = self.api.proxy
         while proxy == self.api.proxy:
-            self.api.set_proxy(next(self.proxies))
+            self.api.proxy = next(self.proxies)
 
     async def login(self, reauth=False):
         """Logs worker in and prepares for scanning"""
@@ -163,7 +163,7 @@ class Worker:
                         provider=self.account.get('provider') or 'ptc',
                         timeout=conf.LOGIN_TIMEOUT
                     )
-            except (ex.AuthTimeoutException, ex.AuthConnectionException) as e:
+            except ex.AuthException as e:
                 err = e
                 await sleep(2, loop=LOOP)
             else:
@@ -1014,8 +1014,8 @@ class Worker:
                 'pageurl': responses.get('CHECK_CHALLENGE', {}).get('challenge_url'),
                 'json': 1
             }
-            async with session.post('http://2captcha.com/in.php', params=params, timeout=10) as resp:
-                response = await resp.json()
+            async with session.post('http://2captcha.com/in.php', params=params) as resp:
+                response = await resp.json(loads=json_loads)
         except CancelledError:
             raise
         except Exception as e:
@@ -1042,7 +1042,7 @@ class Worker:
             }
             while True:
                 async with session.get("http://2captcha.com/res.php", params=params, timeout=20) as resp:
-                    response = await resp.json()
+                    response = await resp.json(loads=json_loads)
                 if response.get('request') != 'CAPCHA_NOT_READY':
                     break
                 await sleep(5, loop=LOOP)
@@ -1087,9 +1087,9 @@ class Worker:
             self.account['level'] = self.player_level
 
         try:
-            self.account['refresh'] = self.api._auth_provider._refresh_token
-            self.account['auth'] = self.api._auth_provider._access_token
-            self.account['expiry'] = self.api._auth_provider._access_token_expiry
+            self.account['refresh'] = self.api.auth_provider._refresh_token
+            self.account['auth'] = self.api.auth_provider._access_token
+            self.account['expiry'] = self.api.auth_provider._access_token_expiry
         except AttributeError:
             pass
 
@@ -1263,7 +1263,7 @@ class Worker:
     @property
     def authenticated(self):
         try:
-            return self.api._auth_provider.is_login()
+            return self.api.auth_provider.is_login()
         except AttributeError:
             return False
 

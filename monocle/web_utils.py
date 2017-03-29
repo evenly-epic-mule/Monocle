@@ -6,7 +6,7 @@ from time import time
 from monocle import sanitized as conf
 from monocle.db import get_forts, Pokestop, session_scope, Sighting, Spawnpoint
 from monocle.utils import Units, get_address
-from monocle.names import POKEMON_NAMES, MOVES, POKEMON_MOVES
+from monocle.names import DAMAGE, MOVES, POKEMON
 
 if conf.MAP_WORKERS:
     try:
@@ -19,6 +19,7 @@ if conf.MAP_WORKERS:
             UNIT_STRING = "m/h"
     except AttributeError:
         UNIT_STRING = "MPH"
+
 
 def get_args():
     parser = ArgumentParser()
@@ -84,12 +85,12 @@ def get_worker_markers(workers):
     } for worker_no, ((lat, lon), timestamp, speed, total_seen, visits, seen_here) in workers.data]
 
 
-def sighting_to_marker(pokemon):
+def sighting_to_marker(pokemon, names=POKEMON, moves=MOVES, damage=DAMAGE):
     pokemon_id = pokemon.pokemon_id
     marker = {
         'id': 'pokemon-' + str(pokemon.id),
         'trash': pokemon_id in conf.TRASH_IDS,
-        'name': POKEMON_NAMES[pokemon_id],
+        'name': names[pokemon_id],
         'pokemon_id': pokemon_id,
         'lat': pokemon.lat,
         'lon': pokemon.lon,
@@ -101,16 +102,10 @@ def sighting_to_marker(pokemon):
         marker['atk'] = pokemon.atk_iv
         marker['def'] = pokemon.def_iv
         marker['sta'] = pokemon.sta_iv
-        marker['move1'] = POKEMON_MOVES.get(move1, move1)
-        marker['move2'] = POKEMON_MOVES.get(move2, move2)
-        try:
-            marker['damage1'] = MOVES[move1]['damage']
-        except KeyError:
-            pass
-        try:
-            marker['damage2'] = MOVES[move2]['damage']
-        except KeyError:
-            pass
+        marker['move1'] = moves[move1]
+        marker['move2'] = moves[move2]
+        marker['damage1'] = damage[move1]
+        marker['damage2'] = damage[move2]
     return marker
 
 
@@ -127,12 +122,13 @@ def get_pokemarkers(after_id=0):
 def get_gym_markers():
     with session_scope() as session:
         forts = get_forts(session)
+    pokemon_names = POKEMON
     return [{
             'id': 'fort-' + str(fort['fort_id']),
             'sighting_id': fort['id'],
             'prestige': fort['prestige'],
             'pokemon_id': fort['guard_pokemon_id'],
-            'pokemon_name': POKEMON_NAMES.get(fort['guard_pokemon_id'], 'Empty'),
+            'pokemon_name': pokemon_names.get(fort['guard_pokemon_id'], 'Empty'),
             'team': fort['team'],
             'lat': fort['lat'],
             'lon': fort['lon']

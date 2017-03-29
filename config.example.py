@@ -5,7 +5,7 @@ DB_ENGINE = 'sqlite:///db.sqlite'
 #DB_ENGINE = 'postgresql://user:pass@localhost/monocle
 
 AREA_NAME = 'SLC'     # the city or region you are scanning
-LANGUAGE = 'EN'       # ISO 639-1 codes EN, DE, FR, and ZH for Pokémon names.
+LANGUAGE = 'EN'       # ISO 639-1 codes EN, DE, ES, FR, IT, JA, KO, or ZH for Pokémon/move names
 MAX_CAPTCHAS = 100    # stop launching new visits if this many CAPTCHAs are pending
 SCAN_DELAY = 10       # wait at least this many seconds before scanning with the same account
 SPEED_UNIT = 'miles'  # valid options are 'miles', 'kilometers', 'meters'
@@ -100,7 +100,7 @@ INCUBATE_EGGS = False        # incubate eggs if available
 ENCOUNTER = None
 
 # PokéStops
-SPIN_POKESTOPS = False # spin all PokéStops that are within range
+SPIN_POKESTOPS = True  # spin all PokéStops that are within range
 SPIN_COOLDOWN = 300    # spin only one PokéStop every n seconds (default 300)
 
 # minimum number of each item to keep if the bag is cleaned
@@ -205,7 +205,7 @@ LAST_MIGRATION = 1481932800  # Dec. 17th, 2016
 #MANAGER_ADDRESS = ('127.0.0.1', 5002)  # could be used for CAPTCHA solving and live worker maps on remote systems
 
 # Store the cell IDs so that they don't have to be recalculated every visit.
-# Enabling will increase memory usage.
+# Enabling will (potentially drastically) increase memory usage.
 #CACHE_CELLS = False
 
 # Only for use with web-sanic (requires PostgreSQL)

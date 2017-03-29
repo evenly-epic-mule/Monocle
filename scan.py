@@ -153,7 +153,7 @@ def cleanup(overseer, manager):
         dump_pickle('accounts', ACCOUNTS)
         FORT_CACHE.pickle()
         if conf.CACHE_CELLS:
-            dump_pickle('cells', Worker.cell_ids)
+            dump_pickle('cells', Worker.cells)
 
         db_proc.stop()
         print("Updating spawns pickle...")

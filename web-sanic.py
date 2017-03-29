@@ -10,7 +10,7 @@ from asyncpg import create_pool
 
 from monocle import sanitized as conf
 from monocle.bounds import center
-from monocle.names import MOVES, POKEMON_MOVES, POKEMON_NAMES
+from monocle.names import DAMAGE, MOVES, POKEMON
 from monocle.web_utils import get_scan_coords, get_worker_markers, Workers, get_args
 
 
@@ -115,12 +115,12 @@ if conf.MAP_WORKERS:
         return html(html_content)
 
 
-def sighting_to_marker(pokemon):
+def sighting_to_marker(pokemon, names=POKEMON, moves=MOVES, damage=DAMAGE):
     pokemon_id = pokemon['pokemon_id']
     marker = {
         'id': 'pokemon-' + str(pokemon['id']),
         'trash': pokemon_id in conf.TRASH_IDS,
-        'name': POKEMON_NAMES[pokemon_id],
+        'name': names[pokemon_id],
         'pokemon_id': pokemon_id,
         'lat': pokemon['lat'],
         'lon': pokemon['lon'],
@@ -132,16 +132,10 @@ def sighting_to_marker(pokemon):
         marker['atk'] = pokemon['atk_iv']
         marker['def'] = pokemon['def_iv']
         marker['sta'] = pokemon['sta_iv']
-        marker['move1'] = POKEMON_MOVES.get(move1, move1)
-        marker['move2'] = POKEMON_MOVES.get(move2, move2)
-        try:
-            marker['damage1'] = MOVES[move1]['damage']
-        except KeyError:
-            pass
-        try:
-            marker['damage2'] = MOVES[move2]['damage']
-        except KeyError:
-            pass
+        marker['move1'] = moves[move1]
+        marker['move2'] = moves[move2]
+        marker['damage1'] = damage[move1]
+        marker['damage2'] = damage[move2]
     return marker
 
 
@@ -179,12 +173,13 @@ async def get_gyms_async():
                         GROUP BY fort_id
                     )
                 ''')
+                pokemon_names = POKEMON
                 return [{
                         'id': 'fort-' + str(fort['fort_id']),
                         'sighting_id': fort['id'],
                         'prestige': fort['prestige'],
                         'pokemon_id': fort['guard_pokemon_id'],
-                        'pokemon_name': POKEMON_NAMES.get(fort['guard_pokemon_id'], 'Empty'),
+                        'pokemon_name': pokemon_names[fort['guard_pokemon_id']],
                         'team': fort['team'],
                         'lat': fort['lat'],
                         'lon': fort['lon']

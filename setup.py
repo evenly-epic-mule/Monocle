@@ -24,9 +24,9 @@ setup(
         'gpsoauth>=0.4.0',
         'werkzeug>=0.11.15',
         'sqlalchemy>=1.1.0',
-        'aiopogo>=1.5.2',
+        'aiopogo>=1.7.0b1',
         'polyline>=1.3.1',
-        'aiohttp>=2.0.4,<2.1',
+        'aiohttp>=2.0.5,<2.1',
         'pogeo>=0.2'
     ],
     extras_require={

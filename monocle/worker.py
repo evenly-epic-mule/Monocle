@@ -505,11 +505,13 @@ class Worker:
                 raise
             except ex.InvalidRPCException as e:
                 self.last_request = time()
-                if not isinstance(e, type(err)):
-                    err = e
+                if isinstance(e, type(err)):
                     self.log.warning('{}', e)
+                else:
+                    err = e
+                    self.log.info('{}', e)
                 self.error_code = 'INVALID REQUEST'
-                await self.random_sleep()
+                await sleep(3, loop=LOOP)
             except ex.ProxyException as e:
                 if not isinstance(e, type(err)):
                     err = e

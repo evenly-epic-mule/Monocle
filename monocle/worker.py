@@ -586,7 +586,7 @@ class Worker:
             self.simulate_jitter(0.00005)
         return False
 
-    async def visit(self, point, bootstrap=False):
+    async def visit(self, point, spawn_id=None, bootstrap=False):
         """Wrapper for self.visit_point - runs it a few times before giving up
 
         Also is capable of restarting in case an error occurs.
@@ -597,7 +597,7 @@ class Worker:
             self.api.set_position(*self.location, self.altitude)
             if not self.authenticated:
                 await self.login()
-            return await self.visit_point(point, bootstrap=bootstrap)
+            return await self.visit_point(point, spawn_id, bootstrap)
         except ex.NotLoggedInException:
             self.error_code = 'NOT AUTHENTICATED'
             await sleep(1, loop=LOOP)
@@ -681,7 +681,7 @@ class Worker:
             self.error_code = 'EXCEPTION'
         return False
 
-    async def visit_point(self, point, bootstrap=False):
+    async def visit_point(self, point, spawn_id, bootstrap):
         self.handle.cancel()
         self.error_code = '∞' if bootstrap else '!'
 
@@ -722,6 +722,7 @@ class Worker:
         pokemon_seen = 0
         forts_seen = 0
         points_seen = 0
+        seen_target = not spawn_id
 
         try:
             time_of_day = map_objects['time_of_day']
@@ -738,6 +739,7 @@ class Worker:
                 pokemon_seen += 1
 
                 normalized = self.normalize_pokemon(pokemon)
+                seen_target = seen_target or normalized['spawn_id'] == spawn_id
 
                 if conf.NOTIFY and self.notifier.eligible(normalized):
                     if conf.ENCOUNTER:
@@ -794,6 +796,12 @@ class Worker:
                         spawns.cell_points.add(p)
                 except KeyError:
                     pass
+
+        if spawn_id:
+            db_proc.add({
+                'type': 'target',
+                'seen': seen_target,
+                'spawn_id': spawn_id})
 
         if (conf.INCUBATE_EGGS and self.unused_incubators
                 and self.eggs and self.smart_throttle()):

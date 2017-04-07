@@ -5,6 +5,7 @@ from queue import Empty
 from itertools import cycle
 from sys import exit
 from concurrent.futures import CancelledError
+from distutils.version import StrictVersion
 
 from aiopogo import PGoApi, json_loads, exceptions as ex
 from aiopogo.auth_ptc import AuthPtc
@@ -46,8 +47,6 @@ del _unit
 class Worker:
     """Single worker walking on the map"""
 
-    if conf.FORCED_KILL:
-        versions = ('0.57.4', '0.57.3', '0.57.2', '0.55.0')
     download_hash = "7b9c5056799a2c5c7d48a62c497736cbcf8c4acb"
     scan_delay = conf.SCAN_DELAY if conf.SCAN_DELAY >= 10 else 10
     g = {'seen': 0, 'captchas': 0}
@@ -179,7 +178,7 @@ class Worker:
             raise err
 
         self.error_code = '°'
-        version = 5704
+        version = 5901
         async with self.sim_semaphore:
             self.error_code = 'APP SIMULATION'
             if conf.APP_SIMULATION:
@@ -556,11 +555,13 @@ class Worker:
                 try:
                     if (not dl_hash
                             and conf.FORCED_KILL
-                            and dl_settings['settings']['minimum_client_version'] not in self.versions):
-                        err = 'A new version is being forced, exiting.'
-                        self.log.error(err)
-                        print(err)
-                        exit()
+                            and dl_settings['settings']['minimum_client_version'] != '0.59.0'):
+                        forced_version = StrictVersion(dl_settings['settings']['minimum_client_version'])
+                        if forced_version > StrictVersion('0.59.1'):
+                            err = '{} is being forced, exiting.'.format(forced_version)
+                            self.log.error(err)
+                            print(err)
+                            exit()
                 except KeyError:
                     pass
         if self.check_captcha(responses):
@@ -741,7 +742,7 @@ class Worker:
                 if conf.NOTIFY and self.notifier.eligible(normalized):
                     if conf.ENCOUNTER:
                         try:
-                            await self.encounter(normalized)
+                            await self.encounter(normalized, pokemon['spawn_point_id'])
                         except CancelledError:
                             db_proc.add(normalized)
                             raise
@@ -755,7 +756,7 @@ class Worker:
                     if (conf.ENCOUNTER == 'all' and
                             'individual_attack' not in normalized):
                         try:
-                            await self.encounter(normalized)
+                            await self.encounter(normalized, pokemon['spawn_point_id'])
                         except Exception as e:
                             self.log.warning('{} during encounter', e.__class__.__name__)
                 db_proc.add(normalized)
@@ -896,7 +897,7 @@ class Worker:
         self.error_code = '!'
         return responses
 
-    async def encounter(self, pokemon):
+    async def encounter(self, pokemon, spawn_id):
         distance_to_pokemon = get_distance(self.location, (pokemon['lat'], pokemon['lon']))
 
         self.error_code = '~'
@@ -907,24 +908,15 @@ class Worker:
             lon_change = (self.location[1] - pokemon['lon']) * percent
             self.location = (
                 self.location[0] - lat_change,
-                self.location[1] - lon_change,
-            )
+                self.location[1] - lon_change)
             self.altitude = uniform(self.altitude - 2, self.altitude + 2)
             self.api.set_position(*self.location, self.altitude)
-            delay_required = (distance_to_pokemon * percent) / 8
-            if delay_required < 1.5:
-                delay_required = triangular(1.5, 4, 2.25)
+            delay_required = min((distance_to_pokemon * percent) / 8, 1.1)
         else:
             self.simulate_jitter()
-            delay_required = triangular(1.5, 4, 2.25)
+            delay_required = 1.1
 
-        if time() - self.last_request < delay_required:
-            await sleep(delay_required, loop=LOOP)
-
-        try:
-            spawn_id = hex(pokemon['spawn_id'])[2:]
-        except TypeError:
-            spawn_id = pokemon['spawn_id']
+        await self.random_sleep(delay_required, delay_required + 1.5)
 
         request = self.api.create_request()
         request = request.encounter(encounter_id=pokemon['encounter_id'],
@@ -1239,9 +1231,9 @@ class Worker:
             return False
 
     @staticmethod
-    async def random_sleep(minimum=10.1, maximum=14):
+    async def random_sleep(minimum=10.1, maximum=14, loop=LOOP):
         """Sleeps for a bit"""
-        await sleep(uniform(minimum, maximum), loop=LOOP)
+        await sleep(uniform(minimum, maximum), loop=loop)
 
     @property
     def start_time(self):

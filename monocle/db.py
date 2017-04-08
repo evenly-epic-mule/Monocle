@@ -508,25 +508,25 @@ def update_failures(session, spawn_id, success, allowed=conf.FAILURES_ALLOWED):
     spawnpoint = session.query(Spawnpoint) \
         .filter(Spawnpoint.spawn_id == spawn_id) \
         .first()
-    if success:
-        spawnpoint.failures = 0
-    elif spawnpoint.failures == allowed:
-        if spawnpoint.duration == 60:
-            spawnpoint.duration = None
-            log.warning('{} consecutive failures on {}, no longer treating as an hour spawn.', allowed + 1, spawn_id)
+    try:
+        if success:
+            spawnpoint.failures = 0
+        elif spawnpoint.failures >= allowed:
+            if spawnpoint.duration == 60:
+                spawnpoint.duration = None
+                log.warning('{} consecutive failures on {}, no longer treating as an hour spawn.', allowed + 1, spawn_id)
+            else:
+                spawnpoint.updated = 0
+                try:
+                    del spawns.despawn_times[spawn_id]
+                except KeyError:
+                    pass
+                log.warning('{} consecutive failures on {}, will treat as an unknown from now on.', allowed + 1, spawn_id)
+            spawnpoint.failures = 0
         else:
-            spawnpoint.updated = 0
-            try:
-                del spawns.despawn_times[spawn_id]
-            except KeyError:
-                pass
-            log.warning('{} consecutive failures on {}, will treat as an unknown from now on.', allowed + 1, spawn_id)
-        spawnpoint.failures = 0
-    else:
-        try:
             spawnpoint.failures += 1
-        except TypeError:
-            spawnpoint.failures = 1
+    except TypeError:
+        spawnpoint.failures = 1
 
 
 def update_mystery(session, mystery):

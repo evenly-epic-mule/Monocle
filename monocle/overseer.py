@@ -278,6 +278,9 @@ class Overseer:
             output.append('Notifications sent: {}, per hour {:.1f}'.format(
                 sent, sent / hours_since_start))
 
+        output.append('Seen shiny: {any}/{total}, only karp {karp}/{karp_total}'.format(
+            **Worker.shiny))
+
         output.append('')
         if not self.all_seen:
             no_sightings = ', '.join(str(w.worker_no)

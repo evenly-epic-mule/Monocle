@@ -51,6 +51,8 @@ class Worker:
     scan_delay = conf.SCAN_DELAY if conf.SCAN_DELAY >= 10 else 10
     g = {'seen': 0, 'captchas': 0}
 
+    shiny = {'any': 0, 'total': 0, 'karp': 0, 'karp_total': 0}
+
     if conf.CACHE_CELLS:
         cells = load_pickle('cells') or {}
 
@@ -940,6 +942,16 @@ class Worker:
                 pokemon['height'] = pdata['height_m']
                 pokemon['weight'] = pdata['weight_kg']
                 pokemon['gender'] = pdata['pokemon_display']['gender']
+                if ('shiny' in pdata['pokemon_display']):
+                    if pokemon['pokemon_id'] == 129:
+                        self.log.warning("found shiny karp")
+                        self.shiny['karp'] += 1
+                    else:
+                        self.log.error("found shiny pokemon, which isn't a karp! #{}".format(pokemon['pokemon_id']))
+                    self.shiny['any'] += 1
+                if pokemon['pokemon_id'] == 129:
+                    self.shiny['karp_total'] += 1
+                self.shiny['total'] += 1
             except KeyError:
                 self.log.error('Missing Pokemon data in encounter response.')
         elif result == 4:

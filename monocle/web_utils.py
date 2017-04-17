@@ -138,10 +138,12 @@ def get_spawnpoint_markers():
         spawns = session.query(Spawnpoint)
         return [{
             'spawn_id': spawn.spawn_id,
-            'despawn_time': spawn.despawn_time,
+            'despawn_time': spawn.despawn_time
+                if spawn.updated and spawn.updated > conf.LAST_MIGRATION else None,
             'lat': spawn.lat,
             'lon': spawn.lon,
             'duration': spawn.duration
+                if spawn.updated and spawn.updated > conf.LAST_MIGRATION else None
         } for spawn in spawns]
 
 if conf.BOUNDARIES:

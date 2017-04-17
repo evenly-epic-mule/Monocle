@@ -64,6 +64,8 @@ class Overseer:
         self.coroutines_count = 0
         self.skipped = 0
         self.visits = 0
+        self.failes = 0
+        self.soft_failes = 0
         self.coroutine_semaphore = Semaphore(conf.COROUTINES_LIMIT, loop=LOOP)
         self.redundant = 0
         self.running = True
@@ -202,6 +204,7 @@ class Overseer:
         T = completing the tutorial
         X = something bad happened
         C = CAPTCHA
+        m = missing spawn
 
         Other letters: various errors and procedures
         """
@@ -245,7 +248,9 @@ class Overseer:
             ('Visits: {}, per second: {:.2f}\n'
              'Skipped: {}, unnecessary: {}').format(
                 self.visits, self.visits / seconds_since_start,
-                self.skipped, self.redundant)
+                self.skipped, self.redundant),
+            'Failed: {}, without fixed: {}'.format(
+                self.failes, self.soft_failes)
         ]
 
         try:
@@ -503,17 +508,28 @@ class Overseer:
         try:
             point = randomize_point(point)
             skip_time = monotonic() + (conf.GIVE_UP_KNOWN if spawn_time else conf.GIVE_UP_UNKNOWN)
-            worker = await self.best_worker(point, skip_time)
-            if not worker:
-                if spawn_time:
-                    self.skipped += 1
-                return
-            async with worker.busy:
-                if spawn_time:
-                    worker.after_spawn = time() - spawn_time
+            for r in range(conf.MAX_RETRIES):
+                worker = await self.best_worker(point, skip_time)
+                if not worker:
+                    if spawn_time:
+                        self.skipped += 1
+                    return
+                async with worker.busy:
+                    if spawn_time:
+                        worker.after_spawn = time() - spawn_time
 
-                if await worker.visit(point, spawn_id):
-                    self.visits += 1
+                    if await worker.visit(point, spawn_id):
+                        self.visits += 1
+                        return
+
+                if spawn_id and spawn_id in SIGHTING_CACHE.store:
+                    return
+                elif not spawn_id:
+                    return
+
+                self.soft_failes += 1
+            self.failes += 1
+            self.log.error("Couln't find a Pokemon for Spawn {}".format(spawn_id))
         except CancelledError:
             raise
         except Exception:

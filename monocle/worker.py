@@ -131,6 +131,7 @@ class Worker:
     def initialize_api(self):
         device_info = get_device_info(self.account)
         self.empty_visits = 0
+        self.soft_failes = 0
 
         self.api = PGoApi(device_info=device_info)
         self.api.set_position(*self.location, self.altitude)
@@ -858,10 +859,17 @@ class Worker:
             await self.incubate_eggs()
 
         if pokemon_seen > 0:
-            self.error_code = ':'
             self.total_seen += pokemon_seen
             self.g['seen'] += pokemon_seen
-            self.empty_visits = 0
+            if seen_target:
+                self.error_code = ':'
+                self.empty_visits = 0
+                self.soft_failes = 0
+            else:
+                self.error_code = 'missing'
+                self.soft_failes += 1
+                if self.soft_failes > 3:
+                    await self.swap_account("{} missed spawns".format(self.soft_failes))
         else:
             self.empty_visits += 1
             if forts_seen == 0:
@@ -886,7 +894,7 @@ class Worker:
 
         self.update_accounts_dict()
         self.handle = LOOP.call_later(60, self.unset_code)
-        return pokemon_seen + forts_seen + points_seen
+        return seen_target and pokemon_seen + forts_seen + points_seen
 
     def smart_throttle(self, requests=1):
         try:

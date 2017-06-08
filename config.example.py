@@ -178,6 +178,8 @@ REPORT_MAPS = True  # Show maps on reports
 
 # allow displaying the live location of workers on the map
 MAP_WORKERS = True
+# show details like IV and Moves in Map
+MAP_SHOW_DETAILS = True
 # filter these Pokemon from the map to reduce traffic and browser load
 #MAP_FILTER_IDS = [161, 165, 16, 19, 167]
 

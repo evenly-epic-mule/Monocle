@@ -184,7 +184,7 @@ function FortMarker (raw) {
             content += '<br>Prestige: ' + raw.prestige +
                        '<br>Guarding Pokemon: ' + raw.pokemon_name + ' (#' + raw.pokemon_id + ')';
         }
-        content += '<br>=&gt; <a href=https://www.google.com/maps/?daddr='+ raw.lat + ','+ raw.lon +' target="_blank" title="See in Google Maps">Get directions</a>';
+        content += '<br>=&gt; <a href="https://www.google.com/maps/?daddr='+ raw.lat + ','+ raw.lon +'" target="_blank" title="See in Google Maps">Get directions</a>';
         event.popup.setContent(content);
     });
     marker.bindPopup();
@@ -247,7 +247,7 @@ function addSpawnsToMap (data, map) {
         circle.bindPopup('<b>Spawn ' + item.spawn_id + '</b>' +
                          '<br/>despawn: ' + time +
                          '<br/>duration: '+ (item.duration == null ? '30mn' : item.duration + 'mn') +
-                         '<br>=&gt; <a href=https://www.google.com/maps/?daddr='+ item.lat + ','+ item.lon +' target="_blank" title="See in Google Maps">Get directions</a>');
+                         '<br>=&gt; <a href="https://www.google.com/maps/?daddr='+ item.lat + ','+ item.lon +'" target="_blank" title="See in Google Maps">Get directions</a>');
         circle.addTo(overlays.Spawns);
     });
 }
@@ -258,7 +258,7 @@ function addPokestopsToMap (data, map) {
         var marker = L.marker([item.lat, item.lon], {icon: icon});
         marker.raw = item;
         marker.bindPopup('<b>Pokestop: ' + item.external_id + '</b>' +
-                         '<br>=&gt; <a href=https://www.google.com/maps/?daddr='+ item.lat + ','+ item.lon +' target="_blank" title="See in Google Maps">Get directions</a>');
+                         '<br>=&gt; <a href="https://www.google.com/maps/?daddr='+ item.lat + ','+ item.lon +'" target="_blank" title="See in Google Maps">Get directions</a>');
         marker.addTo(overlays.Pokestops);
     });
 }

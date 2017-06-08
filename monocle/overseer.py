@@ -62,6 +62,9 @@ class Overseer:
         self.things_count = deque(maxlen=9)
         self.paused = False
         self.coroutines_count = 0
+        self.time_diff = 0
+        self.spawn_counter = 0
+        self.mystery_counter = 0
         self.skipped = 0
         self.visits = 0
         self.coroutine_semaphore = Semaphore(conf.COROUTINES_LIMIT, loop=LOOP)
@@ -171,11 +174,11 @@ class Overseer:
         self.update_coroutines_count()
         self.counts = (
             'Known spawns: {}, unknown: {}, more: {}\n'
-            '{} workers, {} coroutines\n'
+            '{} workers, {} coroutines ({} on spawns, {} mysteries / more)\n'
             'sightings cache: {}, mystery cache: {}, DB queue: {}\n'
         ).format(
             len(spawns), len(spawns.unknown), spawns.cells_count,
-            count, self.coroutines_count,
+            count, self.coroutines_count, self.spawn_counter, self.mystery_counter,
             len(SIGHTING_CACHE), len(MYSTERY_CACHE), len(db_proc)
         )
         LOOP.call_later(refresh, self.update_stats)
@@ -242,8 +245,10 @@ class Overseer:
             self.counts,
             self.stats,
             self.pokemon_found,
-            ('Visits: {}, per second: {:.2f}\n'
+            ('Current time offset: {:.1f}\n'
+             'Visits: {}, per second: {:.2f}\n'
              'Skipped: {}, unnecessary: {}').format(
+                self.time_diff,
                 self.visits, self.visits / seconds_since_start,
                 self.skipped, self.redundant)
         ]
@@ -406,9 +411,9 @@ class Overseer:
 
             # negative = hasn't happened yet
             # positive = already happened
-            time_diff = time() - spawn_time
+            self.time_diff = time() - spawn_time
 
-            while time_diff < 0.5:
+            while self.time_diff < 0.5:
                 try:
                     mystery_point = next(self.mysteries)
 
@@ -420,12 +425,12 @@ class Overseer:
                         self.next_mystery_reload = monotonic() + conf.RESCAN_UNKNOWN
                     else:
                         await sleep(min(spawn_time - time() + .5, self.next_mystery_reload - monotonic()), loop=LOOP)
-                time_diff = time() - spawn_time
+                self.time_diff = time() - spawn_time
 
-            if time_diff > 5 and spawn_id in SIGHTING_CACHE.store:
+            if self.time_diff > 5 and spawn_id in SIGHTING_CACHE.store:
                 self.redundant += 1
                 continue
-            elif time_diff > skip_spawn:
+            elif self.time_diff > skip_spawn:
                 self.skipped += 1
                 continue
 
@@ -501,6 +506,10 @@ class Overseer:
 
     async def try_point(self, point, spawn_time=None, spawn_id=None):
         try:
+            if spawn_time:
+                self.spawn_counter += 1
+            else:
+                self.mystery_counter += 1
             point = randomize_point(point)
             skip_time = monotonic() + (conf.GIVE_UP_KNOWN if spawn_time else conf.GIVE_UP_UNKNOWN)
             worker = await self.best_worker(point, skip_time)
@@ -519,6 +528,10 @@ class Overseer:
         except Exception:
             self.log.exception('An exception occurred in try_point')
         finally:
+            if spawn_time:
+                self.spawn_counter -= 1
+            else:
+                self.mystery_counter -= 1
             self.coroutine_semaphore.release()
 
     async def best_worker(self, point, skip_time):

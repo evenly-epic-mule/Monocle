@@ -202,6 +202,13 @@ class Worker:
         request.get_player(player_locale=conf.PLAYER_LOCALE)
 
         responses = await self.call(request, chain=False)
+        try:
+            output_file="/tmp/request.get_player"
+            if not path.isfile(output_file):
+                with open(output_file, 'w') as fout:
+                    fout.write(pformat(responses))
+        except Exception:
+            pass
 
         tutorial_state = None
         try:
@@ -223,6 +230,13 @@ class Worker:
         request = self.api.create_request()
         request.download_remote_config_version(platform=1, app_version=version)
         responses = await self.call(request, stamp=False, buddy=False, settings=True, dl_hash=False)
+        try:
+            output_file="/tmp/request.download_remote_config_version"
+            if not path.isfile(output_file):
+                with open(output_file, 'w') as fout:
+                    fout.write(pformat(responses))
+        except Exception:
+            pass
 
         try:
             inventory_items = responses['GET_INVENTORY'].inventory_delta.inventory_items
@@ -252,11 +266,25 @@ class Worker:
             filters=(2,)
         )
         await self.call(request, buddy=not tutorial, action=5)
+        try:
+            output_file="/tmp/request.list_avatar_customizations"
+            if not path.isfile(output_file):
+                with open(output_file, 'w') as fout:
+                    fout.write(pformat(responses))
+        except Exception:
+            pass
         await self.random_sleep(7, 14)
 
         request = self.api.create_request()
         request.set_avatar(player_avatar=plater_avatar)
         await self.call(request, buddy=not tutorial, action=2)
+        try:
+            output_file="/tmp/request.set_avatar"
+            if not path.isfile(output_file):
+                with open(output_file, 'w') as fout:
+                    fout.write(pformat(responses))
+        except Exception:
+            pass
 
         if tutorial:
             await self.random_sleep(.5, 4)
@@ -264,12 +292,26 @@ class Worker:
             request = self.api.create_request()
             request.mark_tutorial_complete(tutorials_completed=(1,))
             await self.call(request, buddy=False)
+            try:
+                output_file="/tmp/request.mark_tutorial_complete"
+                if not path.isfile(output_file):
+                    with open(output_file, 'w') as fout:
+                        fout.write(pformat(responses))
+            except Exception:
+                pass
 
         await self.random_sleep(.5, 1)
 
         request = self.api.create_request()
         request.get_player_profile()
         await self.call(request, action=1)
+        try:
+            output_file="/tmp/request.get_player_profile"
+            if not path.isfile(output_file):
+                with open(output_file, 'w') as fout:
+                    fout.write(pformat(responses))
+        except Exception:
+            pass
 
     async def app_simulation_login(self, version):
         self.log.info('Starting RPC login sequence (iOS app simulation)')
@@ -277,6 +319,13 @@ class Worker:
         # empty request
         request = self.api.create_request()
         await self.call(request, chain=False)
+        try:
+            output_file="/tmp/request.empty_request"
+            if not path.isfile(output_file):
+                with open(output_file, 'w') as fout:
+                    fout.write(pformat(responses))
+        except Exception:
+            pass
         await self.random_sleep(.43, .97)
 
         # request 1: get_player
@@ -301,6 +350,13 @@ class Worker:
                     page_offset=page_offset,
                     page_timestamp=page_timestamp)
                 responses = await self.call(request, buddy=False, settings=True)
+                try:
+                    output_file="/tmp/request.get_asset_digest"
+                    if not path.isfile(output_file):
+                        with open(output_file, 'w') as fout:
+                            fout.write(pformat(responses))
+                except Exception:
+                    pass
                 if i > 2:
                     await sleep(1.45)
                     i = 0
@@ -329,6 +385,13 @@ class Worker:
                     page_offset=page_offset,
                     page_timestamp=page_timestamp)
                 responses = await self.call(request, buddy=False, settings=True)
+                try:
+                    output_file="/tmp/request.download_item_templates"
+                    if not path.isfile(output_file):
+                        with open(output_file, 'w') as fout:
+                            fout.write(pformat(responses))
+                except Exception:
+                    pass
                 if i > 2:
                     await sleep(1.5)
                     i = 0
@@ -355,6 +418,13 @@ class Worker:
             request = self.api.create_request()
             request.get_player_profile()
             await self.call(request, settings=True)
+            try:
+                output_file="/tmp/request.get_player_profile"
+                if not path.isfile(output_file):
+                    with open(output_file, 'w') as fout:
+                        fout.write(pformat(responses))
+            except Exception:
+                pass
             await self.random_sleep(.2, .3)
 
             if self.player_level:
@@ -362,6 +432,13 @@ class Worker:
                 request = self.api.create_request()
                 request.level_up_rewards(level=self.player_level)
                 await self.call(request, settings=True)
+                try:
+                    output_file="/tmp/request.level_up_rewards"
+                    if not path.isfile(output_file):
+                        with open(output_file, 'w') as fout:
+                            fout.write(pformat(responses))
+                except Exception:
+                    pass
                 await self.random_sleep(.45, .7)
             else:
                 self.log.warning('No player level')
@@ -370,6 +447,13 @@ class Worker:
             request = self.api.create_request()
             request.register_background_device(device_type='apple_watch')
             await self.call(request, action=0.1)
+            try:
+                output_file="/tmp/request.register_background_device"
+                if not path.isfile(output_file):
+                    with open(output_file, 'w') as fout:
+                        fout.write(pformat(responses))
+            except Exception:
+                pass
 
             self.log.info('Finished RPC login sequence (iOS app simulation)')
             await self.random_sleep(.5, 1.3)
@@ -383,12 +467,26 @@ class Worker:
             request = self.api.create_request()
             request.mark_tutorial_complete(tutorials_completed=(0,))
             await self.call(request, buddy=False)
+            try:
+                output_file="/tmp/request.mark_tutorial_complete"
+                if not path.isfile(output_file):
+                    with open(output_file, 'w') as fout:
+                        fout.write(pformat(responses))
+            except Exception:
+                pass
 
             await self.random_sleep(.35, .525)
 
             request = self.api.create_request()
             request.get_player(player_locale=conf.PLAYER_LOCALE)
             await self.call(request, buddy=False)
+            try:
+                output_file="/tmp/request.get_player"
+                if not path.isfile(output_file):
+                    with open(output_file, 'w') as fout:
+                        fout.write(pformat(responses))
+            except Exception:
+                pass
             await sleep(1)
 
         if 1 not in tutorial_state:
@@ -405,17 +503,38 @@ class Worker:
                 'aa8f7687-a022-4773-b900-3a8c170e9aea/1487275581132582',
                 'e89109b0-9a54-40fe-8431-12f7826c8194/1487275593635524'))
             await self.call(request)
+            try:
+                output_file="/tmp/request.get_download_urls"
+                if not path.isfile(output_file):
+                    with open(output_file, 'w') as fout:
+                        fout.write(pformat(responses))
+            except Exception:
+                pass
 
             await self.random_sleep(7, 10.3)
             request = self.api.create_request()
             starter = choice((1, 4, 7))
             request.encounter_tutorial_complete(pokemon_id=starter)
             await self.call(request, action=1)
+            try:
+                output_file="/tmp/request.encounter_tutorial_complete"
+                if not path.isfile(output_file):
+                    with open(output_file, 'w') as fout:
+                        fout.write(pformat(responses))
+            except Exception:
+                pass
 
             await self.random_sleep(.4, .5)
             request = self.api.create_request()
             request.get_player(player_locale=conf.PLAYER_LOCALE)
             responses = await self.call(request)
+            try:
+                output_file="/tmp/request.get_player"
+                if not path.isfile(output_file):
+                    with open(output_file, 'w') as fout:
+                        fout.write(pformat(responses))
+            except Exception:
+                pass
 
             try:
                 inventory = responses['GET_INVENTORY'].inventory_delta.inventory_items
@@ -433,16 +552,37 @@ class Worker:
             request = self.api.create_request()
             request.claim_codename(codename=self.username)
             await self.call(request, action=2)
+            try:
+                output_file="/tmp/request.claim_codename"
+                if not path.isfile(output_file):
+                    with open(output_file, 'w') as fout:
+                        fout.write(pformat(responses))
+            except Exception:
+                pass
 
             await sleep(.7, loop=LOOP)
             request = self.api.create_request()
             request.get_player(player_locale=conf.PLAYER_LOCALE)
             await self.call(request)
+            try:
+                output_file="/tmp/request.get_player"
+                if not path.isfile(output_file):
+                    with open(output_file, 'w') as fout:
+                        fout.write(pformat(responses))
+            except Exception:
+                pass
             await sleep(.13, loop=LOOP)
 
             request = self.api.create_request()
             request.mark_tutorial_complete(tutorials_completed=(4,))
             await self.call(request, buddy=False)
+            try:
+                output_file="/tmp/request.mark_tutorial_complete"
+                if not path.isfile(output_file):
+                    with open(output_file, 'w') as fout:
+                        fout.write(pformat(responses))
+            except Exception:
+                pass
 
         if 7 not in tutorial_state:
             # first time experience
@@ -450,12 +590,26 @@ class Worker:
             request = self.api.create_request()
             request.mark_tutorial_complete(tutorials_completed=(7,))
             await self.call(request)
+            try:
+                output_file="/tmp/request.mark_tutorial_complete"
+                if not path.isfile(output_file):
+                    with open(output_file, 'w') as fout:
+                        fout.write(pformat(responses))
+            except Exception:
+                pass
 
         if starter_id:
             await self.random_sleep(4, 5)
             request = self.api.create_request()
             request.set_buddy_pokemon(pokemon_id=starter_id)
             await self.call(request, action=2)
+            try:
+                output_file="/tmp/request.set_buddy_pokemon"
+                if not path.isfile(output_file):
+                    with open(output_file, 'w') as fout:
+                        fout.write(pformat(responses))
+            except Exception:
+                pass
             await self.random_sleep(.8, 1.2)
 
         await sleep(.2, loop=LOOP)
@@ -755,6 +909,13 @@ class Worker:
         if diff > 0:
             await sleep(diff, loop=LOOP)
         responses = await self.call(request)
+        try:
+            output_file="/tmp/request.get_map_objects"
+            if not path.isfile(output_file):
+                with open(output_file, 'w') as fout:
+                    fout.write(pformat(responses))
+        except Exception:
+            pass
         self.last_gmo = self.last_request
 
         try:
@@ -926,6 +1087,13 @@ class Worker:
                              latitude = pokestop_location[0],
                              longitude = pokestop_location[1])
         responses = await self.call(request, action=1.2)
+        try:
+            output_file="/tmp/request.fort_details"
+            if not path.isfile(output_file):
+                with open(output_file, 'w') as fout:
+                    fout.write(pformat(responses))
+        except Exception:
+            pass
         name = responses['FORT_DETAILS'].name
 
         request = self.api.create_request()
@@ -935,6 +1103,13 @@ class Worker:
                             fort_latitude = pokestop_location[0],
                             fort_longitude = pokestop_location[1])
         responses = await self.call(request, action=2)
+        try:
+            output_file="/tmp/request.fort_search"
+            if not path.isfile(output_file):
+                with open(output_file, 'w') as fout:
+                    fout.write(pformat(responses))
+        except Exception:
+            pass
 
         try:
             result = responses['FORT_SEARCH'].result
@@ -991,6 +1166,13 @@ class Worker:
                                     player_longitude=self.location[1])
 
         responses = await self.call(request, action=2.25)
+        try:
+            output_file="/tmp/request.encounter"
+            if not path.isfile(output_file):
+                with open(output_file, 'w') as fout:
+                    fout.write(pformat(responses))
+        except Exception:
+            pass
 
         try:
             result = responses['ENCOUNTER'].status
@@ -1033,6 +1215,13 @@ class Worker:
             request = self.api.create_request()
             request.recycle_inventory_item(item_id=item, count=count)
             responses = await self.call(request, action=2)
+            try:
+                output_file="/tmp/request.recycle_inventory_item"
+                if not path.isfile(output_file):
+                    with open(output_file, 'w') as fout:
+                        fout.write(pformat(responses))
+            except Exception:
+                pass
 
             try:
                 if responses['RECYCLE_INVENTORY_ITEM'].result != 1:
@@ -1059,6 +1248,13 @@ class Worker:
                 request = self.api.create_request()
                 request.use_item_egg_incubator(item_id=inc.id, pokemon_id=egg.id)
                 responses = await self.call(request, action=4.5)
+                try:
+                    output_file="/tmp/request.use_item_egg_incubator"
+                    if not path.isfile(output_file):
+                        with open(output_file, 'w') as fout:
+                            fout.write(pformat(responses))
+                except Exception:
+                    pass
 
                 try:
                     ret = responses['USE_ITEM_EGG_INCUBATOR'].result
@@ -1136,6 +1332,13 @@ class Worker:
         request = self.api.create_request()
         request.verify_challenge(token=token)
         await self.call(request, action=4)
+        try:
+            output_file="/tmp/request.verify_challenge"
+            if not path.isfile(output_file):
+                with open(output_file, 'w') as fout:
+                    fout.write(pformat(responses))
+        except Exception:
+            pass
         self.update_accounts_dict()
         self.log.warning("Successfully solved CAPTCHA")
 

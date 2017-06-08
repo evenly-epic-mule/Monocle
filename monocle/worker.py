@@ -889,6 +889,8 @@ class Worker:
         return pokemon_seen + forts_seen + points_seen
 
     def smart_throttle(self, requests=1):
+        if not conf.SMART_THROTTLE:
+            return True
         try:
             # https://en.wikipedia.org/wiki/Linear_equation#Two_variables
             # e.g. hashes_left > 2.25*seconds_left+7.5, spare = 0.05, max = 150

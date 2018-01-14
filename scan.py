@@ -203,7 +203,7 @@ def main():
     overseer = Overseer(manager)
     overseer.start(args.status_bar)
     launcher = LOOP.create_task(overseer.launch(args.bootstrap, args.pickle))
-    activate_hash_server(conf.HASH_KEY)
+    activate_hash_server(conf.HASH_KEY, hash_endpoint=conf.HASH_ENDPOINT)
     if platform != 'win32':
         LOOP.add_signal_handler(SIGINT, launcher.cancel)
         LOOP.add_signal_handler(SIGTERM, launcher.cancel)

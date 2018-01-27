@@ -125,11 +125,13 @@ def get_pokemarkers(after_id=0):
         return tuple(map(sighting_to_marker, pokemons))
 
 
-def get_raid_markers(names=POKEMON, moves=MOVES):
+def get_raid_markers(names=POKEMON, moves=MOVES, show_ex=conf.MAP_SHOW_EX_GYMS):
     with session_scope() as session:
         markers = []
         raids = session.query(Raid) \
             .filter(Raid.time_end > time())
+        if show_ex:
+            forts = get_forts(session)
         for raid in raids:
             fort = session.query(Fort) \
                 .filter(Fort.id == raid.fort_id) \
@@ -140,6 +142,7 @@ def get_raid_markers(names=POKEMON, moves=MOVES):
                 .first()
             markers.append({
                 'id': 'raid-' + str(raid.id),
+                'ex': show_ex and raid.fort_id in get_ex_raid_gyms(forts),
                 'level': raid.level,
                 'team': fortsighting.team,
                 'pokemon_id': raid.pokemon_id,
@@ -180,11 +183,12 @@ def get_weather():
         return markers
 
 
-def get_gym_markers(names=POKEMON):
+def get_gym_markers(names=POKEMON, show_ex=conf.MAP_SHOW_EX_GYMS):
     with session_scope() as session:
         forts = get_forts(session)
         return [{
                 'id': 'fort-' + str(fort['fort_id']),
+                'ex': show_ex and fort['fort_id'] in get_ex_raid_gyms(forts),
                 'sighting_id': fort['id'],
                 'prestige': fort['prestige'],
                 'pokemon_id': fort['guard_pokemon_id'],
@@ -268,6 +272,42 @@ def get_all_parks():
         dump_pickle('parks', parks)
     
     return parks
+
+def get_ex_raid_gyms(forts=None):
+    gyms = []
+    with session_scope() as session:
+        if not forts:
+            forts = get_forts(session)
+        try:
+            pickle = load_pickle('ex_raid_gyms', raise_exception=True)
+            gyms = pickle['gyms']
+            max_id = pickle.get('max_id', 0)
+            for g in forts:
+                if g['fort_id'] > max_id:
+                    raise KeyError("Cache outdated")
+        except (FileNotFoundError, TypeError, KeyError):
+            parks = get_all_parks()
+            max_id = 0
+            for g in forts:
+                if g['fort_id'] > max_id:
+                    max_id = g['fort_id']
+                gym_point = Point(g['lat'], g['lon'])
+                cell = Polygon(get_s2_cell_as_polygon(g['lat'], g['lon'], 20)) # s2 lvl 20
+                for p in parks:
+                    coords = p['coords']
+                    # osm polygon can be a line
+                    if len(coords) == 2:
+                        shape = LineString(coords)
+                        if shape.within(cell.centroid):
+                            gyms.append(g['fort_id'])
+                            break
+                    if len(coords) > 2:
+                        shape = Polygon(coords)
+                        if shape.contains(cell.centroid):
+                            gyms.append(g['fort_id'])
+                            break
+            dump_pickle('ex_raid_gyms', {"max_id": max_id, "gyms": gyms})
+    return gyms
 
 def get_s2_cells(n=north, w=west, s=south, e=east, level=12):
     region_covered = s2sphere.LatLngRect.from_point_pair(

@@ -210,6 +210,9 @@ function PokemonMarker (raw) {
 
 function FortMarker (raw) {
     var icon = new FortIcon({iconUrl: '/static/monocle-icons/forts/' + raw.team + '.png'});
+    if (raw.ex) {
+        icon.options.className += " ex-raid-gym"
+    }
     var marker = L.marker([raw.lat, raw.lon], {icon: icon, opacity: 1});
     marker.raw = raw;
     markers[raw.id] = marker;
@@ -281,9 +284,9 @@ function RaidMarker (raw) {
     }, 2500);
 
     var userPreference = getPreference('raids-'+raw.level);
-    if (userPreference === 'show'){
+    if (userPreference === 'show' || (userPreference === 'showex' && raw.ex)){
         marker.overlay = 'Raids';
-    }else if (userPreference === 'hide'){
+    }else{
         marker.overlay = 'Hidden';
     }
 
@@ -652,7 +655,7 @@ function moveToLayer(id, layer, type){
 		    var m = markers[k];
 		    if ((k.indexOf("raid-") > -1) && (m !== undefined) && (m.raw.level === id)){
 		        m.removeFrom(overlays[m.overlay]);
-		        if (layer === 'show'){
+		        if (layer === 'show' || (layer === 'showex' && m.raw.ex)){
 		            m.overlay = "Raids";
 		            m.addTo(overlays.Raids);
 		        }else{
@@ -688,6 +691,7 @@ function populateSettingsPanels(){
                           '<span class="raid-label">Level ' + i + ' (' + _raids_labels[i-1] + ')</span>' +
                           '<div class="btn-group" role="group" data-group="raids-'+i+'">' +
                             '<button type="button" class="btn btn-default" data-id="'+i+'" data-value="show">Show</button>' +
+                            '<button type="button" class="btn btn-default" data-id="'+i+'" data-value="showex">EX Gym only</button>' +
                             '<button type="button" class="btn btn-default" data-id="'+i+'" data-value="hide">Hide</button>' +
                           '</div>' +
                         '</div>';
@@ -701,7 +705,7 @@ function setSettingsDefaults(){
         _defaultSettings['filter-'+i] = (_defaultSettings['TRASH_IDS'].indexOf(i) > -1) ? "trash" : "pokemon";
     };
     for (var i = 1; i <= _raids_count; i++){
-        _defaultSettings['raids-'+i] = (_defaultSettings['RAIDS_FILTER'].indexOf(i) > -1) ? "show" : "hide";
+        _defaultSettings['raids-'+i] = (_defaultSettings['RAIDS_FILTER'].indexOf(i) > -1) ? "show" : "showex";
     };
 
     $("#settings div.btn-group").each(function(){

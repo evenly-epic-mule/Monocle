@@ -77,6 +77,12 @@ class Worker:
     else:
         proxies = None
 
+    if conf.PTC_PROXIES:
+        ptc_proxies = cycle(conf.PTC_PROXIES)
+    else:
+        ptc_proxies = None
+
+
     if conf.NOTIFY or conf.NOTIFY_RAIDS:
         notifier = Notifier()
 
@@ -136,6 +142,8 @@ class Worker:
         self.api.set_position(*self.location, self.altitude)
         if self.proxies:
             self.api.proxy = next(self.proxies)
+        if self.ptc_proxies:
+            self.api.ptc_proxy = next(self.ptc_proxies)
         try:
             if self.account['provider'] == 'ptc' and 'auth' in self.account:
                 self.api.auth_provider = AuthPtc(username=self.username, password=self.account['password'], timeout=conf.LOGIN_TIMEOUT)
@@ -150,6 +158,14 @@ class Worker:
         proxy = self.api.proxy
         while proxy == self.api.proxy:
             self.api.proxy = next(self.proxies)
+
+    def swap_ptc_proxy(self):
+        if len(conf.PTC_PROXIES) < 2:
+            return False
+        proxy = self.api.ptc_proxy
+        while proxy == self.api.ptc_proxy:
+            self.api.ptc_proxy = next(self.ptc_proxies)
+        return True
 
     async def login(self, reauth=False):
         """Logs worker in and prepares for scanning"""
@@ -669,6 +685,14 @@ class Worker:
             if not await self.login(reauth=True):
                 await self.swap_account(reason='reauth failed')
             return await self.visit(point, spawn_id, bootstrap)
+        except ex.AuthConnectionException as e:
+            if self.swap_ptc_proxy():
+                self.log.error('{}, swapping proxy.', e)
+                await sleep(3, loop=LOOP)
+            else:
+                await sleep(120, loop=LOOP)
+            if not await self.login(reauth=True):
+                await self.swap_account(reason='reauth failed')
         except ex.AuthException as e:
             self.log.warning('Auth error on {}: {}', self.username, e)
             self.error_code = 'NOT AUTHENTICATED'

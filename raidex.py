@@ -38,22 +38,9 @@ def fullmap(map_html=render_map()):
 def gym_data():
     gyms = []
     parks = get_all_parks()
-    for g in get_gym_markers():
-        gym_point = Point(g['lat'], g['lon'])
-        cell = Polygon(get_s2_cell_as_polygon(g['lat'], g['lon'], 20)) # s2 lvl 20
-        for p in parks:
-            coords = p['coords']
-            # osm polygon can be a line
-            if len(coords) == 2:
-                shape = LineString(coords)
-                if shape.within(cell.centroid):
-                    gyms.append(g)
-                    break
-            if len(coords) > 2:
-                shape = Polygon(coords)
-                if shape.contains(cell.centroid):
-                    gyms.append(g)
-                    break
+    for g in get_gym_markers(show_ex=True):
+        if g['ex']:
+            gyms.append(g)
     return jsonify(gyms)
 
 @app.route('/parks_cells')

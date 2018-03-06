@@ -179,6 +179,8 @@ REPORT_MAPS = True  # Show maps on reports
 
 # allow displaying the live location of workers on the map
 MAP_WORKERS = True
+# Highligh EX Raid Gyms on map (default False, uncomment to enable)
+#MAP_SHOW_EX_GYMS = True
 # filter these Pokemon from the map to reduce traffic and browser load
 #MAP_FILTER_IDS = [161, 165, 16, 19, 167]
 

@@ -57,6 +57,10 @@
     box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
 }
 
+.ex-raid-gym {
+    background: #0f0;
+}
+
 .leaflet-control-layers-toggle {
     background-image: url('../img/layers.png');
 }
